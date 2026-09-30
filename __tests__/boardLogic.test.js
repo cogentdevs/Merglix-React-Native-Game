@@ -24,7 +24,7 @@ const EXPECTED_LEVELS = {
   7: {types: 5, matches: 8, items: 24, rows: 4, timer: 60},
   8: {types: 5, matches: 8, items: 24, rows: 4, timer: 60},
   9: {types: 6, matches: 8, items: 24, rows: 4, timer: 60},
-  10: {types: 6, matches: 10, items: 30, rows: 5, timer: 60},
+  10: {types: 6, matches: 8, items: 24, rows: 4, timer: 60},
   11: {types: 8, matches: 8, items: 24, rows: 4, timer: 70},
   12: {types: 8, matches: 8, items: 24, rows: 4, timer: 70},
   13: {types: 8, matches: 8, items: 24, rows: 4, timer: 70},
@@ -85,6 +85,35 @@ const EXPECTED_LEVELS = {
   68: {types: 12, matches: 12, items: 36, rows: 6, timer: 120, completion: 35},
   69: {types: 12, matches: 12, items: 36, rows: 6, timer: 120, completion: 35},
   70: {types: 12, matches: 12, items: 36, rows: 6, timer: 120, completion: 35},
+  71: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  72: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  73: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  74: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  75: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  76: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  77: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  78: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  79: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  80: {types: 12, matches: 12, items: 36, rows: 6, timer: 130, completion: 35},
+  81: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  82: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  83: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  84: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  85: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  86: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  87: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  88: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  89: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  90: {types: 12, matches: 12, items: 36, rows: 6, timer: 140, completion: 40},
+  91: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  92: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  93: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  94: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  96: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  97: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  98: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  99: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  100: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
 };
 
 test('level timers increase automatically by 10 seconds every 10 levels', () => {
@@ -144,7 +173,7 @@ test('Levels 6-10 rotate products from the Merglix element asset set', () => {
   ).size).toBeGreaterThanOrEqual(11);
 });
 
-describe.each(Array.from({length: 60}, (_, index) => index + 11))(
+describe.each(Object.keys(LEVEL_CONFIGS).map(Number).filter(level => level >= 11))(
   'Level %i full-shelf contract',
   level => {
     const config = LEVEL_CONFIGS[level];

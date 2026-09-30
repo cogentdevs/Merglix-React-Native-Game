@@ -580,7 +580,7 @@ export default function GameplayScreen({navigation, route}) {
         ) : null}
         <BoosterBar
           boosterState={boosterState}
-          busy={inputLocked || paused || timeUp || complete || isShuffling || magnetProductIds.size > 0}
+          busy={paused || timeUp || complete || isShuffling || magnetProductIds.size > 0}
           freezeActive={isTimeFrozen}
           level={level}
           magnetActive={magnetProductIds.size > 0}
