@@ -10,6 +10,8 @@ import {getWorldLevels, isLevelCompleted, isWorldCompleted} from '../game/levelW
 const WORLDS = [
   {id: 1, levels: getWorldLevels(1)},
   {id: 2, levels: getWorldLevels(2)},
+  {id: 3, levels: getWorldLevels(3)},
+  {id: 4, levels: getWorldLevels(4)},
 ];
 const coin3d = require('../assets/coin-3d.png');
 

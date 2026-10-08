@@ -13,6 +13,7 @@ import {
   PRODUCT_ASSETS,
   SHELF_ASSETS,
 } from '../src/game/levelConfigs';
+import {getLevelCompletionReward} from '../src/game/coinRewards';
 
 const EXPECTED_LEVELS = {
   1: {types: 3, matches: 4, items: 12, rows: 3, timer: 60},
@@ -109,11 +110,34 @@ const EXPECTED_LEVELS = {
   92: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   93: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   94: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  95: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   96: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   97: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   98: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   99: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
   100: {types: 12, matches: 12, items: 36, rows: 6, timer: 150, completion: 40},
+  101: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  102: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  103: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  104: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  105: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  106: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  107: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  108: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  109: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  110: {types: 14, matches: 14, items: 42, rows: 7, timer: 160, completion: 45},
+  111: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  112: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  113: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  114: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  115: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  116: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  117: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  118: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  119: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  120: {types: 14, matches: 14, items: 42, rows: 7, timer: 170, completion: 45},
+  121: {types: 14, matches: 14, items: 42, rows: 7, timer: 180, completion: 50},
+  122: {types: 14, matches: 14, items: 42, rows: 7, timer: 180, completion: 50},
 };
 
 test('level timers increase automatically by 10 seconds every 10 levels', () => {
@@ -135,7 +159,7 @@ describe.each(Object.entries(EXPECTED_LEVELS))('Level %s', (level, expected) => 
     expect(config.rows).toBe(expected.rows);
     expect(config.durationSeconds).toBe(expected.timer);
     expect(config.matchReward).toBe(5);
-    expect(config.completionReward).toBe(expected.completion ?? 25);
+    expect(config.completionReward).toBe(getLevelCompletionReward(Number(level)));
     expect(config.productTypes).toHaveLength(expected.types);
     expect(Object.values(config.copiesByType).every(count => count % 3 === 0)).toBe(true);
   });

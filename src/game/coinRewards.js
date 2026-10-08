@@ -5,12 +5,26 @@ export const REWARD_CENTER_AMOUNTS = [10, 15, 20, 25, 30, 50];
 
 export function getLevelCompletionReward(level) {
   if (level <= 10) return 25;
-  if (level <= 30) return 25;
-  if (level <= 60) return 30;
-  if (level <= 80) return 35;
-  if (level <= 100) return 40;
-  if (level <= 120) return 45;
-  return 45 + Math.ceil((level - 120) / 20) * 5;
+  if (level <= 20) return 30;
+  if (level <= 30) return 35;
+  if (level <= 40) return 40;
+  if (level <= 50) return 45;
+  if (level <= 60) return 50;
+  if (level <= 70) return 55;
+  if (level <= 80) return 60;
+  if (level <= 90) return 65;
+  if (level <= 100) return 70;
+  if (level <= 110) return 75;
+  if (level <= 120) return 80;
+  if (level <= 130) return 85;
+  if (level <= 140) return 90;
+  if (level <= 150) return 95;
+  if (level <= 160) return 100;
+  if (level <= 170) return 105;
+  if (level <= 180) return 110;
+  if (level <= 190) return 115;
+  if (level <= 200) return 120;
+  return 120 + Math.ceil((level - 200) / 10) * 5;
 }
 
 export function getRewardBreakdown({level, matchGroups, replay = false}) {

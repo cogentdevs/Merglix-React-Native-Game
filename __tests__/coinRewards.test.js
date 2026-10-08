@@ -73,11 +73,29 @@ describe('coin rewards', () => {
     });
   });
 
-  test('uses the configured completion reward bands', () => {
+  test('uses the approved completion reward plan through Level 200', () => {
     expect(getLevelCompletionReward(10)).toBe(25);
-    expect(getLevelCompletionReward(11)).toBe(25);
-    expect(getLevelCompletionReward(100)).toBe(40);
-    expect(getLevelCompletionReward(121)).toBe(50);
+    expect(getLevelCompletionReward(11)).toBe(30);
+    expect(getLevelCompletionReward(21)).toBe(35);
+    expect(getLevelCompletionReward(31)).toBe(40);
+    expect(getLevelCompletionReward(41)).toBe(45);
+    expect(getLevelCompletionReward(51)).toBe(50);
+    expect(getLevelCompletionReward(61)).toBe(55);
+    expect(getLevelCompletionReward(71)).toBe(60);
+    expect(getLevelCompletionReward(81)).toBe(65);
+    expect(getLevelCompletionReward(91)).toBe(70);
+    expect(getLevelCompletionReward(100)).toBe(70);
+    expect(getLevelCompletionReward(101)).toBe(75);
+    expect(getLevelCompletionReward(111)).toBe(80);
+    expect(getLevelCompletionReward(121)).toBe(85);
+    expect(getLevelCompletionReward(131)).toBe(90);
+    expect(getLevelCompletionReward(141)).toBe(95);
+    expect(getLevelCompletionReward(151)).toBe(100);
+    expect(getLevelCompletionReward(161)).toBe(105);
+    expect(getLevelCompletionReward(171)).toBe(110);
+    expect(getLevelCompletionReward(181)).toBe(115);
+    expect(getLevelCompletionReward(191)).toBe(120);
+    expect(getLevelCompletionReward(200)).toBe(120);
   });
 
   test('halves only the completion bonus on replay', () => {
