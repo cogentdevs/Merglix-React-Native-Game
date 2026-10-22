@@ -12,7 +12,10 @@ const WORLDS = [
   {id: 2, levels: getWorldLevels(2)},
   {id: 3, levels: getWorldLevels(3)},
   {id: 4, levels: getWorldLevels(4)},
+  {id: 5, levels: getWorldLevels(5)},
 ];
+// Temporary review mode: lets the game owner test every implemented level.
+const REVIEW_ALL_LEVELS = true;
 const coin3d = require('../assets/coin-3d.png');
 
 export default function LevelSelectScreen({navigation}) {
@@ -22,9 +25,11 @@ export default function LevelSelectScreen({navigation}) {
   const contentWidth = Math.min(width * 0.9, 500);
   const gap = Math.max(12, Math.min(22, contentWidth * 0.065));
   const cardSize = (contentWidth - gap * 2) / 3;
-  const visibleWorlds = WORLDS.filter(world =>
-    world.id === 1 || isWorldCompleted(levelStars, world.id - 1),
-  );
+  const visibleWorlds = REVIEW_ALL_LEVELS
+    ? WORLDS
+    : WORLDS.filter(world =>
+      world.id === 1 || isWorldCompleted(levelStars, world.id - 1),
+    );
 
   return (
     <View style={styles.screen}>
@@ -75,7 +80,8 @@ function WorldSection({world, cardSize, gap, levelStars, navigation, unlockedLev
             completed={isLevelCompleted(levelStars, levelNumber)}
             key={levelNumber}
             level={levelNumber}
-            locked={levelNumber > unlockedLevel || !LEVEL_CONFIGS[levelNumber]}
+            locked={(!REVIEW_ALL_LEVELS && levelNumber > unlockedLevel) ||
+              !LEVEL_CONFIGS[levelNumber]}
             onPress={() => navigation.navigate('Gameplay', {level: levelNumber})}
             size={cardSize}
             stars={levelStars[levelNumber] ?? 0}
