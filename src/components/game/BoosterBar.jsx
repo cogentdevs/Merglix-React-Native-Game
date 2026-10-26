@@ -41,7 +41,9 @@ function BoosterButton({active, busy, level, name, onPress, uses}) {
 }
 
 function BoosterBar({busy, freezeActive, level, magnetActive,
-  onFreeze, onMagnet, onShuffle, shuffleActive, uses}) {
+  onFreeze, onMagnet, onShuffle, shuffleActive, uses, hidden = false}) {
+  if (hidden) return null;
+
   return (
     <View style={styles.bar}>
       <BoosterButton active={magnetActive} busy={busy} level={level} name="magnet" onPress={onMagnet} uses={uses.magnet} />

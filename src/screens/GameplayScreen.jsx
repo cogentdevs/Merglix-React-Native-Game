@@ -20,6 +20,7 @@ import {
 } from 'react-native-responsive-dimensions';
 import ShelfBoard from '../components/game/ShelfBoard';
 import BoosterBar from '../components/game/BoosterBar';
+import GameplayBannerAd from '../components/game/GameplayBannerAd';
 import BoosterUnlockModal from '../components/game/BoosterUnlockModal';
 import CoinDeductionPopup from '../components/game/CoinDeductionPopup';
 import LevelCompleteModal from '../components/game/LevelCompleteModal';
@@ -584,6 +585,7 @@ export default function GameplayScreen({navigation, route}) {
           boosterState={boosterState}
           busy={paused || timeUp || complete || isShuffling || magnetProductIds.size > 0}
           freezeActive={isTimeFrozen}
+          hidden
           level={level}
           magnetActive={magnetProductIds.size > 0}
           onFreeze={handleFreeze}
@@ -592,6 +594,7 @@ export default function GameplayScreen({navigation, route}) {
           shuffleActive={isShuffling}
           uses={boosterUses}
         />
+        <GameplayBannerAd />
 
         <Text style={styles.instruction}>
           Clear the shelf  •  {board.filter(Boolean).length} items left

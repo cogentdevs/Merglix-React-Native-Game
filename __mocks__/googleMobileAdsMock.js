@@ -17,6 +17,10 @@ module.exports = {
     ERROR: 'error',
     OPENED: 'opened',
   },
+  BannerAd: 'BannerAd',
+  BannerAdSize: {
+    ANCHORED_ADAPTIVE_BANNER: 'anchored-adaptive-banner',
+  },
   RewardedAd: {
     createForAdRequest: jest.fn(createAd),
   },
@@ -24,5 +28,5 @@ module.exports = {
     EARNED_REWARD: 'rewarded_earned_reward',
     LOADED: 'rewarded_loaded',
   },
-  TestIds: {REWARDED: 'test-rewarded'},
+  TestIds: {BANNER: 'test-banner', REWARDED: 'test-rewarded'},
 };
