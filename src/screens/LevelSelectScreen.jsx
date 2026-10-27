@@ -14,6 +14,7 @@ const WORLDS = [
   {id: 4, levels: getWorldLevels(4)},
   {id: 5, levels: getWorldLevels(5)},
   {id: 6, levels: getWorldLevels(6)},
+  {id: 7, levels: getWorldLevels(7)},
 ];
 const coin3d = require('../assets/coin-3d.png');
 
