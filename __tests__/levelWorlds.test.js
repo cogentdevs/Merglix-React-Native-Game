@@ -15,6 +15,7 @@ describe('level worlds', () => {
     expect(getWorldLevels(5)).toEqual(Array.from({length: 50}, (_, index) => index + 201));
     expect(getWorldLevels(6)).toEqual(Array.from({length: 50}, (_, index) => index + 251));
     expect(getWorldLevels(7)).toEqual(Array.from({length: 50}, (_, index) => index + 301));
+    expect(getWorldLevels(8)).toEqual(Array.from({length: 50}, (_, index) => index + 351));
   });
 
   test('World 1 remains incomplete until every one of its 50 levels is complete', () => {

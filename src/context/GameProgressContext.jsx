@@ -2,7 +2,7 @@ import React, {createContext, useCallback, useContext, useEffect, useState} from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {INITIAL_BOOSTERS} from '../game/boosterConfig';
 import {applyGameplayMatchClaim, applyRewardCenterClaim, applyRewardedAdClaim, getRewardBreakdown} from '../game/coinRewards';
-import {applyDailyCheckInClaim, applyGameplayCoinsToCheckInGate, INITIAL_CHECK_IN} from '../game/checkIn';
+import {applyDailyCheckInClaim, INITIAL_CHECK_IN, migrateDailyCheckIn} from '../game/checkIn';
 import {applyCompletedRewardAd, INITIAL_HOURLY_AD_REWARD} from '../game/hourlyAdRewards';
 import {applySuccessfulBoosterUse, INITIAL_BOOSTER_STATE, markBoosterUnlockSeen} from '../game/boosterEconomy';
 
@@ -42,16 +42,19 @@ export function GameProgressProvider({children}) {
           const unlockedFromStars = completedLevels.length > 0
             ? Math.max(...completedLevels) + 1
             : 1;
-          setProgress({
+          const dailyCheckIn = migrateDailyCheckIn(saved.dailyCheckIn);
+          const hydratedProgress = {
             ...INITIAL_PROGRESS,
             ...saved,
             level: Math.max(saved.level ?? 1, unlockedFromStars),
             boosters: {...INITIAL_BOOSTERS, ...saved.boosters},
             boosterState: {...INITIAL_BOOSTER_STATE, ...saved.boosterState},
             settings: {...INITIAL_SETTINGS, ...saved.settings},
-            dailyCheckIn: {...INITIAL_CHECK_IN, ...saved.dailyCheckIn},
+            dailyCheckIn,
             hourlyAdReward: {...INITIAL_HOURLY_AD_REWARD, ...saved.hourlyAdReward},
-          });
+          };
+          setProgress(hydratedProgress);
+          AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(hydratedProgress)).catch(() => {});
         }
       })
       .catch(() => {});
@@ -117,7 +120,7 @@ export function GameProgressProvider({children}) {
           rewardClaims,
           completionRewards,
         };
-        return applyGameplayCoinsToCheckInGate(completedProgress, reward.completionCoins);
+        return completedProgress;
       });
     },
     [updateProgress],
@@ -148,7 +151,7 @@ export function GameProgressProvider({children}) {
   );
 
   const claimDailyCheckIn = useCallback(
-    dateKey => updateProgress(current => applyDailyCheckInClaim(current, dateKey)),
+    now => updateProgress(current => applyDailyCheckInClaim(current, now)),
     [updateProgress],
   );
 

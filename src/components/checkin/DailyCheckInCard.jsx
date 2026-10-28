@@ -8,11 +8,10 @@ import {
 } from 'react-native-responsive-dimensions';
 import {useGameProgress} from '../../context/GameProgressContext';
 import {
-  CHECK_IN_REWARDS,
-  GAMEPLAY_COINS_TO_UNLOCK_NEXT_CYCLE,
+  getCheckInReward,
+  getCooldownRemaining,
   getCheckInStatus,
-  getDisplayedCheckInDayIndex,
-  getLocalDateKey,
+  getNextCheckInDay,
   normalizeCheckIn,
 } from '../../game/checkIn';
 import useGameSounds from '../../hooks/useGameSounds';
@@ -22,22 +21,25 @@ const coin3d = require('../../assets/coin-3d.png');
 export default function DailyCheckInCard() {
   const {claimDailyCheckIn, dailyCheckIn} = useGameProgress();
   const playSound = useGameSounds();
-  const [dateKey, setDateKey] = useState(getLocalDateKey);
+  const [now, setNow] = useState(() => Date.now());
   const [claiming, setClaiming] = useState(false);
+  const [claimedReward, setClaimedReward] = useState(null);
   const claimLock = useRef(false);
   const pulse = useRef(new Animated.Value(1)).current;
   const float = useRef(new Animated.Value(0)).current;
   const success = useRef(new Animated.Value(0)).current;
   const checkIn = useMemo(() => normalizeCheckIn(dailyCheckIn), [dailyCheckIn]);
-  const status = getCheckInStatus(checkIn, dateKey);
-  const dayIndex = getDisplayedCheckInDayIndex(checkIn, status);
-  const reward = CHECK_IN_REWARDS[dayIndex];
+  const status = getCheckInStatus(checkIn, now);
+  const nextDay = getNextCheckInDay(checkIn, now);
+  const reward = getCheckInReward(nextDay);
+  const cooldownRemaining = getCooldownRemaining(checkIn, now);
+  const canClaim = status === 'available' || status === 'expired';
 
   useEffect(() => {
-    const refreshDate = () => setDateKey(getLocalDateKey());
-    const interval = setInterval(refreshDate, 60000);
+    const refreshNow = () => setNow(Date.now());
+    const interval = setInterval(refreshNow, 1000);
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') refreshDate();
+      if (state === 'active') refreshNow();
     });
     return () => {
       clearInterval(interval);
@@ -46,7 +48,7 @@ export default function DailyCheckInCard() {
   }, []);
 
   useEffect(() => {
-    if (status !== 'available') {
+    if (!canClaim) {
       pulse.setValue(1);
       return undefined;
     }
@@ -56,7 +58,7 @@ export default function DailyCheckInCard() {
     ]));
     animation.start();
     return () => animation.stop();
-  }, [pulse, status]);
+  }, [canClaim, pulse]);
 
   useEffect(() => {
     const animation = Animated.loop(Animated.sequence([
@@ -68,10 +70,11 @@ export default function DailyCheckInCard() {
   }, [float]);
 
   const claim = () => {
-    if (claimLock.current || status !== 'available') return;
+    if (claimLock.current || !canClaim) return;
     claimLock.current = true;
     setClaiming(true);
-    claimDailyCheckIn(dateKey);
+    setClaimedReward(reward);
+    claimDailyCheckIn(Date.now());
     playSound('coins');
     success.setValue(0);
     Animated.sequence([
@@ -81,68 +84,53 @@ export default function DailyCheckInCard() {
     ]).start(() => {
       claimLock.current = false;
       setClaiming(false);
+      setClaimedReward(null);
     });
   };
 
-  if (status === 'locked') {
-    const gate = checkIn.gameplayCoinsSinceCycle;
-    const percent = Math.min(100, (gate / GAMEPLAY_COINS_TO_UNLOCK_NEXT_CYCLE) * 100);
-    return (
-      <View style={styles.lockDepth}>
-        <View style={styles.lockCard}>
-          <View style={styles.lockIcon}><MaterialCommunityIcons color="#FFE06A" name="lock" size={rf(4)} /></View>
-          <Text style={styles.lockEyebrow}>NEXT CHECK-IN CYCLE</Text>
-          <Text style={styles.lockTitle}>Earn 100 Gameplay Coins</Text>
-          <Text style={styles.lockHint}>Only match and level-completion coins count</Text>
-          <View style={styles.progressTrack}><View style={[styles.progressFill, {width: `${percent}%`}]} /></View>
-          <Text style={styles.progressText}>{gate} / {GAMEPLAY_COINS_TO_UNLOCK_NEXT_CYCLE}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  const claimed = status === 'claimed';
-  const waiting = status === 'waiting';
-  const daySeven = dayIndex === 6;
-  const buttonLabel = waiting
-    ? 'AVAILABLE TOMORROW'
-    : claimed
-      ? 'COME BACK TOMORROW'
-      : daySeven
-        ? 'CLAIM GRAND REWARD'
-        : 'CLAIM';
+  const formatCountdown = milliseconds => {
+    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+  const locked = status === 'locked' || status === 'migrationLocked';
+  const expired = status === 'expired';
+  const buttonLabel = locked ? 'COME BACK LATER' : expired ? 'RESTART STREAK' : 'CLAIM';
+  const stateText = status === 'migrationLocked'
+    ? 'New streak available tomorrow'
+    : locked
+      ? `Next check-in in ${formatCountdown(cooldownRemaining)}`
+      : expired
+        ? 'Streak expired — restart at Day 1'
+        : `Day ${nextDay} reward is ready`;
 
   return (
-    <Animated.View style={[styles.cardDepth, daySeven && styles.grandDepth, {transform: [{scale: pulse}]}]}>
-      <View style={[styles.card, claimed && styles.claimedCard, waiting && styles.waitingCard, daySeven && !claimed && styles.grandCard]}>
+    <Animated.View style={[styles.cardDepth, expired && styles.grandDepth, {transform: [{scale: pulse}]}]}>
+      <View style={[styles.card, locked && styles.waitingCard, expired && styles.grandCard]}>
         <View pointerEvents="none" style={styles.cardHighlight} />
-        <Text style={styles.eyebrow}>{daySeven ? 'GRAND DAILY REWARD' : 'DAILY CHECK-IN'}</Text>
-        <View style={styles.dayBadge}><Text style={styles.dayBadgeText}>DAY {dayIndex + 1} OF 7</Text></View>
+        <Text style={styles.eyebrow}>DAILY CHECK-IN</Text>
+        <View style={styles.dayBadge}><Text style={styles.dayBadgeText}>CURRENT STREAK: DAY {checkIn.streakDay}</Text></View>
         <Animated.View style={{transform: [{translateY: float}]}}>
           <Image source={coin3d} resizeMode="contain" style={styles.coin} />
         </Animated.View>
         <Text style={styles.rewardAmount}>+{reward}</Text>
         <Text style={styles.rewardLabel}>COINS</Text>
-        <Text style={styles.stateText}>
-          {waiting
-            ? `Cycle ${checkIn.cycle} unlocked`
-            : claimed
-              ? `Day ${dayIndex + 1} completed`
-              : `Cycle ${checkIn.cycle} reward is ready`}
-        </Text>
+        <Text style={styles.stateText}>{stateText}</Text>
         <Pressable
           accessibilityRole="button"
-          disabled={claimed || waiting || claiming}
+          disabled={!canClaim || claiming}
           onPress={claim}
-          style={({pressed}) => [styles.buttonDepth, (claimed || waiting) && styles.disabledDepth, pressed && styles.pressed]}>
-          <View style={[styles.button, (claimed || waiting) && styles.disabledButton]}>
-            <MaterialCommunityIcons color="#FFFFFF" name={claimed ? 'check-circle' : waiting ? 'clock-outline' : 'gift'} size={rf(2.25)} />
+          style={({pressed}) => [styles.buttonDepth, (!canClaim || claiming) && styles.disabledDepth, pressed && styles.pressed]}>
+          <View style={[styles.button, (!canClaim || claiming) && styles.disabledButton]}>
+            <MaterialCommunityIcons color="#FFFFFF" name={locked ? 'clock-outline' : expired ? 'refresh' : 'gift'} size={rf(2.25)} />
             <Text style={styles.buttonText}>{buttonLabel}</Text>
           </View>
         </Pressable>
         <Animated.View pointerEvents="none" style={[styles.success, {opacity: success, transform: [{scale: success}]}]}>
           <MaterialCommunityIcons color="#FFFFFF" name="check-bold" size={rf(3.2)} />
-          <Text style={styles.successText}>+{reward} COINS!</Text>
+          <Text style={styles.successText}>+{claimedReward ?? reward} COINS!</Text>
         </Animated.View>
       </View>
     </Animated.View>

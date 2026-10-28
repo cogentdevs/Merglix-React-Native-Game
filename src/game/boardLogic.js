@@ -13,7 +13,11 @@ export function detectMatches(board, rows, columns, matchSize = 3) {
       }
 
       const group = Array.from({length: matchSize}, (_, offset) => start + offset);
-      if (group.every(index => board[index]?.type === item.type)) {
+      const isFreshRestockGroup = group.every(index => board[index]?.restockLocked);
+      if (
+        !isFreshRestockGroup &&
+        group.every(index => board[index]?.type === item.type)
+      ) {
         matches.push(group);
         column += matchSize - 1;
       }
@@ -35,9 +39,12 @@ export function swapSlots(board, firstIndex, secondIndex) {
   }
 
   const nextBoard = [...board];
+  const activateRestockedItem = item => item?.restockLocked
+    ? {...item, restockLocked: false}
+    : item;
   [nextBoard[firstIndex], nextBoard[secondIndex]] = [
-    nextBoard[secondIndex],
-    nextBoard[firstIndex],
+    activateRestockedItem(nextBoard[secondIndex]),
+    activateRestockedItem(nextBoard[firstIndex]),
   ];
   return nextBoard;
 }
@@ -165,4 +172,55 @@ export function createLevelBoard(config) {
   }
 
   throw new Error(`Unable to create a playable board for level ${config.level}`);
+}
+
+function createRestockCandidate(board, matchedGroups, types, restockStart) {
+  const candidate = [...board];
+
+  matchedGroups.forEach((group, groupIndex) => {
+    const type = types[groupIndex];
+    group.forEach((slot, copy) => {
+      candidate[slot] = {
+        id: `${type}-restock-${restockStart + groupIndex}-${copy}`,
+        type,
+        restockLocked: true,
+      };
+    });
+  });
+
+  return candidate;
+}
+
+/**
+ * Refills one triple for every matched group while preserving the board contract:
+ * no opening match, one available player swap, and unique product IDs.
+ */
+export function refillMatchedSlots(
+  board,
+  config,
+  matchedGroups,
+  restockStart = 1,
+  retryLimit = 800,
+) {
+  const groups = matchedGroups.filter(group =>
+    group.length === config.matchSize && group.every(slot => board[slot] === null),
+  );
+  const productTypes = [...new Set(config.productTypes)];
+
+  if (!groups.length || !productTypes.length) return null;
+
+  for (let attempt = 0; attempt < retryLimit; attempt += 1) {
+    const types = groups.map(() =>
+      productTypes[Math.floor(Math.random() * productTypes.length)],
+    );
+    const candidate = createRestockCandidate(board, groups, types, restockStart);
+    if (
+      detectMatches(candidate, config.rows, config.columns, config.matchSize).length === 0 &&
+      findHintSwap(candidate, config.rows, config.columns, config.matchSize)
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
 }

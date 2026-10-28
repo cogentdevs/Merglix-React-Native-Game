@@ -1,5 +1,3 @@
-import {applyGameplayCoinsToCheckInGate} from './checkIn';
-
 export const MATCH_REWARD = 5;
 export const REWARD_CENTER_AMOUNTS = [10, 15, 20, 25, 30, 50];
 
@@ -86,10 +84,9 @@ export function applyGameplayMatchClaim(progress, claimId, amount) {
   if (!claimId || amount <= 0 || progress.matchRewardClaims?.includes(claimId)) {
     return progress;
   }
-  const credited = {
+  return {
     ...progress,
     coins: Math.max(0, (progress.coins ?? 0) + amount),
     matchRewardClaims: [...(progress.matchRewardClaims ?? []), claimId].slice(-300),
   };
-  return applyGameplayCoinsToCheckInGate(credited, amount);
 }

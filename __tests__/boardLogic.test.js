@@ -3,11 +3,13 @@ import {
   detectMatches,
   findHintSwap,
   findMagnetHintIds,
+  refillMatchedSlots,
   shuffleRemainingBoard,
   swapSlots,
 } from '../src/game/boardLogic';
 import {
   getLevelTimerSeconds,
+  getRestockCountForLevel,
   getStarsForTime,
   LEVEL_CONFIGS,
   PRODUCT_ASSETS,
@@ -148,6 +150,52 @@ test('level timers increase automatically by 10 seconds every 10 levels', () => 
   expect(getLevelTimerSeconds(121)).toBe(180);
   expect(getLevelTimerSeconds(1000)).toBe(1050);
 });
+
+test('restock ranges preserve the approved boundaries and derive total matches', () => {
+  expect(getRestockCountForLevel(99)).toBe(0);
+  expect(getRestockCountForLevel(100)).toBe(1);
+  expect(getRestockCountForLevel(150)).toBe(1);
+  expect(getRestockCountForLevel(151)).toBe(2);
+  expect(getRestockCountForLevel(201)).toBe(3);
+  expect(getRestockCountForLevel(251)).toBe(4);
+  expect(getRestockCountForLevel(301)).toBe(5);
+  expect(getRestockCountForLevel(351)).toBe(6);
+
+  expect(LEVEL_CONFIGS[99].restockCount).toBe(0);
+  expect(LEVEL_CONFIGS[100].restockCount).toBe(1);
+  expect(LEVEL_CONFIGS[151].restockCount).toBe(2);
+  expect(LEVEL_CONFIGS[201].restockCount).toBe(3);
+  expect(LEVEL_CONFIGS[251].restockCount).toBe(4);
+  expect(LEVEL_CONFIGS[301].restockCount).toBe(5);
+  expect(LEVEL_CONFIGS[301].targetMatches).toBe(14);
+  expect(LEVEL_CONFIGS[301].totalTargetMatches).toBe(19);
+});
+
+test.each([100, 151, 201, 251, 301])(
+  'Level %i safely refills exactly one cleared match group',
+  level => {
+    const config = LEVEL_CONFIGS[level];
+    const startingBoard = createLevelBoard(config);
+    const hint = findHintSwap(startingBoard, config.rows, config.columns, config.matchSize);
+    const matchedBoard = swapSlots(startingBoard, hint[0], hint[1]);
+    const [group] = detectMatches(
+      matchedBoard,
+      config.rows,
+      config.columns,
+      config.matchSize,
+    );
+    const cleared = matchedBoard.map((item, index) => group.includes(index) ? null : item);
+    const refilled = refillMatchedSlots(cleared, config, [group], 1);
+
+    expect(refilled).not.toBeNull();
+    const refillItems = refilled.filter(item => item?.id.includes('-restock-'));
+    expect(refillItems).toHaveLength(3);
+    expect(new Set(refillItems.map(item => item.id)).size).toBe(3);
+    expect(refillItems.every(item => config.productTypes.includes(item.type))).toBe(true);
+    expect(detectMatches(refilled, config.rows, config.columns, config.matchSize)).toEqual([]);
+    expect(findHintSwap(refilled, config.rows, config.columns, config.matchSize)).not.toBeNull();
+  },
+);
 
 describe.each(Object.entries(EXPECTED_LEVELS))('Level %s', (level, expected) => {
   const config = LEVEL_CONFIGS[level];

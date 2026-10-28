@@ -30,6 +30,7 @@ import {
   detectMatches,
   findHintSwap,
   findMagnetHintIds,
+  refillMatchedSlots,
   shuffleRemainingBoard,
   swapSlots,
 } from '../game/boardLogic';
@@ -95,8 +96,10 @@ export default function GameplayScreen({navigation, route}) {
   const boosterTimerRef = useRef(null);
   const feedbackTimerRef = useRef(null);
   const coinFeedbackTimerRef = useRef(null);
+  const restockTimerRef = useRef(null);
   const matchResolutionRef = useRef(null);
   const completedMatchesRef = useRef(0);
+  const restocksUsedRef = useRef(0);
   const matchCoinsRef = useRef(0);
   const completedRef = useRef(false);
   const adPurposeRef = useRef(null);
@@ -184,7 +187,10 @@ export default function GameplayScreen({navigation, route}) {
         if (timer.current) clearTimeout(timer.current);
         timer.current = null;
       });
+    if (restockTimerRef.current) clearTimeout(restockTimerRef.current);
+    restockTimerRef.current = null;
     completedRef.current = false;
+    restocksUsedRef.current = 0;
     boosterGuardRef.current = {magnet: false, shuffle: false, freeze: false};
     setBoard(createLevelBoard(config));
     setSelectedIndex(null);
@@ -248,6 +254,7 @@ export default function GameplayScreen({navigation, route}) {
         .forEach(timer => {
           if (timer.current) clearTimeout(timer.current);
         });
+      if (restockTimerRef.current) clearTimeout(restockTimerRef.current);
     },
     [],
   );
@@ -399,7 +406,18 @@ export default function GameplayScreen({navigation, route}) {
     const cleared = resolution.board.map((item, index) =>
       resolution.indices.has(index) ? null : item,
     );
-    const isComplete = cleared.every(item => item === null);
+    const availableRestocks = Math.max(0, config.restockCount - restocksUsedRef.current);
+    const restockGroups = resolution.groups.slice(0, availableRestocks);
+    const restockedBoard = restockGroups.length
+      ? refillMatchedSlots(
+        cleared,
+        config,
+        restockGroups,
+        restocksUsedRef.current + 1,
+      )
+      : null;
+    const appliedRestocks = restockedBoard ? restockGroups.length : 0;
+    const isComplete = !restockedBoard && cleared.every(item => item === null);
     playSound('match');
     setBoard(cleared);
     setMatchingIndices(new Set());
@@ -414,6 +432,17 @@ export default function GameplayScreen({navigation, route}) {
     setCoinFeedback(`+${resolution.reward}`);
     if (coinFeedbackTimerRef.current) clearTimeout(coinFeedbackTimerRef.current);
     coinFeedbackTimerRef.current = setTimeout(() => setCoinFeedback(null), 800);
+
+    if (restockedBoard) {
+      restocksUsedRef.current += appliedRestocks;
+      restockTimerRef.current = setTimeout(() => {
+        setBoard(restockedBoard);
+        setInputLocked(false);
+        setActivityVersion(current => current + 1);
+        restockTimerRef.current = null;
+      }, 220);
+      return;
+    }
 
     if (isComplete && !completedRef.current) {
       completedRef.current = true;
@@ -469,6 +498,7 @@ export default function GameplayScreen({navigation, route}) {
       matchResolutionRef.current = {
         board: nextBoard,
         indices,
+        groups,
         completedMatches: nextCompletedMatches,
         reward,
       };
@@ -637,7 +667,7 @@ export default function GameplayScreen({navigation, route}) {
         }}
         onHome={() => navigation.navigate('MainTabs', {screen: 'Home'})}
         onRestart={restartLevel}
-        targetMatches={config.targetMatches}
+        targetMatches={config.totalTargetMatches}
         visible={timeUp && !complete}
       />
 

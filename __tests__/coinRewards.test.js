@@ -51,7 +51,7 @@ test('an uncompleted or unknown attempt cannot claim ad coins', () => {
   expect(applyRewardedAdClaim(progress, 'unknown')).toBe(progress);
 });
 
-test('match coins are saved immediately, gate-aware, and duplicate-safe', () => {
+test('match coins are saved immediately, do not affect check-in state, and are duplicate-safe', () => {
   const progress = {
     coins: 10,
     matchRewardClaims: [],
@@ -59,7 +59,7 @@ test('match coins are saved immediately, gate-aware, and duplicate-safe', () => 
   };
   const rewarded = applyGameplayMatchClaim(progress, 'attempt-1:match:1', 5);
   expect(rewarded.coins).toBe(15);
-  expect(rewarded.dailyCheckIn.gameplayCoinsSinceCycle).toBe(25);
+  expect(rewarded.dailyCheckIn.gameplayCoinsSinceCycle).toBe(20);
   expect(applyGameplayMatchClaim(rewarded, 'attempt-1:match:1', 5)).toBe(rewarded);
 });
 
@@ -131,6 +131,12 @@ describe('coin rewards', () => {
     expect(getLevelCompletionReward(340)).toBe(190);
     expect(getLevelCompletionReward(341)).toBe(195);
     expect(getLevelCompletionReward(350)).toBe(195);
+    expect(getLevelCompletionReward(351)).toBe(200);
+    expect(getLevelCompletionReward(360)).toBe(200);
+    expect(getLevelCompletionReward(361)).toBe(205);
+    expect(getLevelCompletionReward(370)).toBe(205);
+    expect(getLevelCompletionReward(371)).toBe(210);
+    expect(getLevelCompletionReward(375)).toBe(210);
   });
 
   test('halves only the completion bonus on replay', () => {
