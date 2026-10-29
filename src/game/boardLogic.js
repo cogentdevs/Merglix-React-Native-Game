@@ -1,4 +1,12 @@
-export function detectMatches(board, rows, columns, matchSize = 3) {
+import {PRODUCT_ASSETS} from './levelConfigs';
+
+export function detectMatches(
+  board,
+  rows,
+  columns,
+  matchSize = 3,
+  includeFreshRestockGroups = false,
+) {
   const matches = [];
 
   for (let row = 0; row < rows; row += 1) {
@@ -15,7 +23,7 @@ export function detectMatches(board, rows, columns, matchSize = 3) {
       const group = Array.from({length: matchSize}, (_, offset) => start + offset);
       const isFreshRestockGroup = group.every(index => board[index]?.restockLocked);
       if (
-        !isFreshRestockGroup &&
+        (includeFreshRestockGroups || !isFreshRestockGroup) &&
         group.every(index => board[index]?.type === item.type)
       ) {
         matches.push(group);
@@ -134,6 +142,36 @@ export function shuffleRemainingBoard(board, config, retryLimit = 200) {
   return null;
 }
 
+/**
+ * Mixes every visible item after a restock. Unlike the player Shuffle booster,
+ * this also rejects a row of three freshly-restocked items so the user never
+ * receives an automatic visible match from a refill.
+ */
+export function shuffleRestockedBoard(board, config, retryLimit = 500) {
+  const originalOrder = board.map(item => item?.id ?? null);
+
+  for (let attempt = 0; attempt < retryLimit; attempt += 1) {
+    const candidate = shuffle(board);
+    const candidateOrder = candidate.map(item => item?.id ?? null);
+    const changed = candidateOrder.some((id, index) => id !== originalOrder[index]);
+    if (
+      changed &&
+      detectMatches(
+        candidate,
+        config.rows,
+        config.columns,
+        config.matchSize,
+        true,
+      ).length === 0 &&
+      findHintSwap(candidate, config.rows, config.columns, config.matchSize)
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 export function createLevelBoard(config) {
   const pool = config.productTypes.flatMap(type =>
     Array.from({
@@ -192,6 +230,37 @@ function createRestockCandidate(board, matchedGroups, types, restockStart) {
 }
 
 /**
+ * Returns the asset types that have never appeared in this attempt.  Restocks
+ * must not reintroduce a type from the starting level board or from an earlier
+ * restock, even if that earlier triple has since been cleared.
+ */
+export function getAvailableRestockProductTypes(
+  board,
+  config,
+  usedRestockTypes = new Set(),
+) {
+  const excludedTypes = new Set([
+    ...config.productTypes,
+    ...board.filter(Boolean).map(item => item.type),
+    ...usedRestockTypes,
+  ]);
+
+  return Object.keys(PRODUCT_ASSETS).filter(type => !excludedTypes.has(type));
+}
+
+function takeRandomTypes(types, count) {
+  const remaining = [...types];
+  const selected = [];
+
+  while (selected.length < count && remaining.length) {
+    const index = Math.floor(Math.random() * remaining.length);
+    selected.push(remaining.splice(index, 1)[0]);
+  }
+
+  return selected;
+}
+
+/**
  * Refills one triple for every matched group while preserving the board contract:
  * no opening match, one available player swap, and unique product IDs.
  */
@@ -200,25 +269,29 @@ export function refillMatchedSlots(
   config,
   matchedGroups,
   restockStart = 1,
+  usedRestockTypes = new Set(),
   retryLimit = 800,
 ) {
   const groups = matchedGroups.filter(group =>
     group.length === config.matchSize && group.every(slot => board[slot] === null),
   );
-  const productTypes = [...new Set(config.productTypes)];
+  const productTypes = getAvailableRestockProductTypes(board, config, usedRestockTypes);
 
-  if (!groups.length || !productTypes.length) return null;
+  // Never fall back to a starting type or a previously-restocked type.  A null
+  // result lets the gameplay screen safely reject the match instead of silently
+  // changing the configured target or creating a duplicate type.
+  if (!groups.length || productTypes.length < groups.length) return null;
 
   for (let attempt = 0; attempt < retryLimit; attempt += 1) {
-    const types = groups.map(() =>
-      productTypes[Math.floor(Math.random() * productTypes.length)],
-    );
+    // One transaction may refill more than one matched triple.  Sampling
+    // without replacement keeps every newly introduced type distinct.
+    const types = takeRandomTypes(productTypes, groups.length);
     const candidate = createRestockCandidate(board, groups, types, restockStart);
     if (
       detectMatches(candidate, config.rows, config.columns, config.matchSize).length === 0 &&
       findHintSwap(candidate, config.rows, config.columns, config.matchSize)
     ) {
-      return candidate;
+      return {board: candidate, types};
     }
   }
 

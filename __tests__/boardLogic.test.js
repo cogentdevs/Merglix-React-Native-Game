@@ -3,8 +3,10 @@ import {
   detectMatches,
   findHintSwap,
   findMagnetHintIds,
+  getAvailableRestockProductTypes,
   refillMatchedSlots,
   shuffleRemainingBoard,
+  shuffleRestockedBoard,
   swapSlots,
 } from '../src/game/boardLogic';
 import {
@@ -152,23 +154,40 @@ test('level timers increase automatically by 10 seconds every 10 levels', () => 
 });
 
 test('restock ranges preserve the approved boundaries and derive total matches', () => {
-  expect(getRestockCountForLevel(99)).toBe(0);
-  expect(getRestockCountForLevel(100)).toBe(1);
-  expect(getRestockCountForLevel(150)).toBe(1);
-  expect(getRestockCountForLevel(151)).toBe(2);
-  expect(getRestockCountForLevel(201)).toBe(3);
-  expect(getRestockCountForLevel(251)).toBe(4);
-  expect(getRestockCountForLevel(301)).toBe(5);
-  expect(getRestockCountForLevel(351)).toBe(6);
+  expect(getRestockCountForLevel(25)).toBe(0);
+  expect(getRestockCountForLevel(26)).toBe(1);
+  expect(getRestockCountForLevel(50)).toBe(1);
+  expect(getRestockCountForLevel(51)).toBe(2);
+  expect(getRestockCountForLevel(100)).toBe(3);
+  expect(getRestockCountForLevel(101)).toBe(4);
+  expect(getRestockCountForLevel(150)).toBe(5);
+  expect(getRestockCountForLevel(151)).toBe(6);
+  expect(getRestockCountForLevel(300)).toBe(11);
+  expect(getRestockCountForLevel(301)).toBe(12);
+  expect(getRestockCountForLevel(350)).toBe(13);
+  expect(getRestockCountForLevel(351)).toBe(14);
+  expect(getRestockCountForLevel(400)).toBe(15);
+  expect(getRestockCountForLevel(401)).toBe(16);
+  expect(getRestockCountForLevel(451)).toBe(18);
+  expect(getRestockCountForLevel(476)).toBe(19);
+  expect(getRestockCountForLevel(500)).toBe(19);
 
-  expect(LEVEL_CONFIGS[99].restockCount).toBe(0);
-  expect(LEVEL_CONFIGS[100].restockCount).toBe(1);
-  expect(LEVEL_CONFIGS[151].restockCount).toBe(2);
-  expect(LEVEL_CONFIGS[201].restockCount).toBe(3);
-  expect(LEVEL_CONFIGS[251].restockCount).toBe(4);
-  expect(LEVEL_CONFIGS[301].restockCount).toBe(5);
+  expect(LEVEL_CONFIGS[25].restockCount).toBe(0);
+  expect(LEVEL_CONFIGS[26].restockCount).toBe(1);
+  expect(LEVEL_CONFIGS[100].restockCount).toBe(3);
+  expect(LEVEL_CONFIGS[151].restockCount).toBe(6);
+  expect(LEVEL_CONFIGS[201].restockCount).toBe(8);
+  expect(LEVEL_CONFIGS[251].restockCount).toBe(10);
+  expect(LEVEL_CONFIGS[301].restockCount).toBe(12);
+  expect(LEVEL_CONFIGS[351].restockCount).toBe(14);
+  expect(LEVEL_CONFIGS[376].restockCount).toBe(15);
   expect(LEVEL_CONFIGS[301].targetMatches).toBe(14);
-  expect(LEVEL_CONFIGS[301].totalTargetMatches).toBe(19);
+  expect(LEVEL_CONFIGS[301].totalTargetMatches).toBe(26);
+  expect(LEVEL_CONFIGS[351].totalTargetMatches).toBe(28);
+  expect(LEVEL_CONFIGS[376].totalTargetMatches).toBe(29);
+  expect(LEVEL_CONFIGS[351].totalTargetMatches * LEVEL_CONFIGS[351].matchReward).toBe(140);
+  expect(LEVEL_CONFIGS[376].totalTargetMatches * LEVEL_CONFIGS[376].matchReward).toBe(145);
+  expect((14 + getRestockCountForLevel(500)) * LEVEL_CONFIGS[351].matchReward).toBe(165);
 });
 
 test.each([100, 151, 201, 251, 301])(
@@ -185,17 +204,108 @@ test.each([100, 151, 201, 251, 301])(
       config.matchSize,
     );
     const cleared = matchedBoard.map((item, index) => group.includes(index) ? null : item);
-    const refilled = refillMatchedSlots(cleared, config, [group], 1);
+    const result = refillMatchedSlots(cleared, config, [group], 1);
 
-    expect(refilled).not.toBeNull();
+    expect(result).not.toBeNull();
+    const {board: refilled, types} = result;
     const refillItems = refilled.filter(item => item?.id.includes('-restock-'));
     expect(refillItems).toHaveLength(3);
     expect(new Set(refillItems.map(item => item.id)).size).toBe(3);
-    expect(refillItems.every(item => config.productTypes.includes(item.type))).toBe(true);
+    expect(types).toHaveLength(1);
+    expect(refillItems.every(item => !config.productTypes.includes(item.type))).toBe(true);
+    expect(new Set(refillItems.map(item => item.type))).toEqual(new Set(types));
     expect(detectMatches(refilled, config.rows, config.columns, config.matchSize)).toEqual([]);
     expect(findHintSwap(refilled, config.rows, config.columns, config.matchSize)).not.toBeNull();
   },
 );
+
+test('restocks use fresh registered types only and reset their history on restart', () => {
+  const config = LEVEL_CONFIGS[401];
+  const startingBoard = createLevelBoard(config);
+  const hint = findHintSwap(startingBoard, config.rows, config.columns, config.matchSize);
+  const matchedBoard = swapSlots(startingBoard, hint[0], hint[1]);
+  const [group] = detectMatches(matchedBoard, config.rows, config.columns, config.matchSize);
+  const cleared = matchedBoard.map((item, index) => group.includes(index) ? null : item);
+  const usedTypes = new Set();
+
+  expect(getAvailableRestockProductTypes(cleared, config, usedTypes)).toHaveLength(
+    Object.keys(PRODUCT_ASSETS).length - config.productTypes.length,
+  );
+  expect(getAvailableRestockProductTypes(cleared, config, usedTypes).length)
+    .toBeGreaterThanOrEqual(config.restockCount);
+  const futureLevel500Config = {
+    ...config,
+    level: 500,
+    restockCount: getRestockCountForLevel(500),
+  };
+  expect(getAvailableRestockProductTypes(cleared, futureLevel500Config).length)
+    .toBeGreaterThanOrEqual(futureLevel500Config.restockCount);
+
+  for (let restock = 1; restock <= config.restockCount; restock += 1) {
+    const result = refillMatchedSlots(cleared, config, [group], restock, usedTypes);
+    expect(result).not.toBeNull();
+    expect(result.types).toHaveLength(1);
+    expect(result.types[0]).toBeTruthy();
+    expect(config.productTypes).not.toContain(result.types[0]);
+    expect(usedTypes).not.toContain(result.types[0]);
+    usedTypes.add(result.types[0]);
+  }
+
+  // A new level attempt receives a new history set, so its fresh pool resets.
+  expect(getAvailableRestockProductTypes(cleared, config, new Set()))
+    .toContain(usedTypes.values().next().value);
+});
+
+test('restock safely refuses a refill when no fresh registered type remains', () => {
+  const config = LEVEL_CONFIGS[401];
+  const startingBoard = createLevelBoard(config);
+  const hint = findHintSwap(startingBoard, config.rows, config.columns, config.matchSize);
+  const matchedBoard = swapSlots(startingBoard, hint[0], hint[1]);
+  const [group] = detectMatches(matchedBoard, config.rows, config.columns, config.matchSize);
+  const cleared = matchedBoard.map((item, index) => group.includes(index) ? null : item);
+  const exhaustedTypes = new Set(
+    getAvailableRestockProductTypes(cleared, config),
+  );
+
+  expect(refillMatchedSlots(cleared, config, [group], 1, exhaustedTypes)).toBeNull();
+});
+
+test('a restock mixes every item without creating a visible automatic match', () => {
+  const config = LEVEL_CONFIGS[411];
+  const startingBoard = createLevelBoard(config);
+  const hint = findHintSwap(startingBoard, config.rows, config.columns, config.matchSize);
+  const matchedBoard = swapSlots(startingBoard, hint[0], hint[1]);
+  const [group] = detectMatches(matchedBoard, config.rows, config.columns, config.matchSize);
+  const cleared = matchedBoard.map((item, index) => group.includes(index) ? null : item);
+  const refill = refillMatchedSlots(cleared, config, [group], 1);
+  const mixed = shuffleRestockedBoard(refill.board, config);
+
+  expect(mixed).not.toBeNull();
+  expect(mixed.map(item => item?.id).sort()).toEqual(
+    refill.board.map(item => item?.id).sort(),
+  );
+  expect(mixed.map(item => item?.id)).not.toEqual(refill.board.map(item => item?.id));
+  expect(detectMatches(mixed, config.rows, config.columns, config.matchSize, true)).toEqual([]);
+  expect(findHintSwap(mixed, config.rows, config.columns, config.matchSize)).not.toBeNull();
+});
+
+test('Levels 411-420 follow the approved seven-row expansion contract', () => {
+  for (let level = 411; level <= 420; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(16);
+    expect(config.totalTargetMatches).toBe(30);
+    expect(config.durationSeconds).toBe(470);
+    expect(config.completionReward).toBe(230);
+    expect(config.matchReward).toBe(5);
+  }
+});
 
 describe.each(Object.entries(EXPECTED_LEVELS))('Level %s', (level, expected) => {
   const config = LEVEL_CONFIGS[level];

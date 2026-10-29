@@ -16,7 +16,11 @@ const WORLDS = [
   {id: 6, levels: getWorldLevels(6)},
   {id: 7, levels: getWorldLevels(7)},
   {id: 8, levels: getWorldLevels(8)},
+  {id: 9, levels: getWorldLevels(9)},
 ];
+// Temporary QA switch. Set this back to false before the live release to
+// restore the normal world and level unlock flow without touching saved data.
+const SHOW_ALL_CONFIGURED_LEVELS_FOR_REVIEW = false;
 const coin3d = require('../assets/coin-3d.png');
 
 export default function LevelSelectScreen({navigation}) {
@@ -26,9 +30,11 @@ export default function LevelSelectScreen({navigation}) {
   const contentWidth = Math.min(width * 0.9, 500);
   const gap = Math.max(12, Math.min(22, contentWidth * 0.065));
   const cardSize = (contentWidth - gap * 2) / 3;
-  const visibleWorlds = WORLDS.filter(world =>
-    world.id === 1 || isWorldCompleted(levelStars, world.id - 1),
-  );
+  const visibleWorlds = SHOW_ALL_CONFIGURED_LEVELS_FOR_REVIEW
+    ? WORLDS.filter(world => world.levels.some(level => LEVEL_CONFIGS[level]))
+    : WORLDS.filter(world =>
+      world.id === 1 || isWorldCompleted(levelStars, world.id - 1),
+    );
 
   return (
     <View style={styles.screen}>
@@ -55,6 +61,7 @@ export default function LevelSelectScreen({navigation}) {
               gap={gap}
               key={world.id}
               levelStars={levelStars}
+              reviewMode={SHOW_ALL_CONFIGURED_LEVELS_FOR_REVIEW}
               unlockedLevel={unlockedLevel}
               navigation={navigation}
               world={world}
@@ -66,7 +73,10 @@ export default function LevelSelectScreen({navigation}) {
   );
 }
 
-function WorldSection({world, cardSize, gap, levelStars, navigation, unlockedLevel}) {
+function WorldSection({world, cardSize, gap, levelStars, navigation, reviewMode, unlockedLevel}) {
+  const levels = reviewMode
+    ? world.levels.filter(level => LEVEL_CONFIGS[level])
+    : world.levels;
   return (
     <View style={[styles.worldSection, world.id === 2 && styles.secondWorld]}>
       <View style={styles.ribbonWrap}>
@@ -74,12 +84,13 @@ function WorldSection({world, cardSize, gap, levelStars, navigation, unlockedLev
         <View style={styles.ribbon}><Text style={styles.ribbonText}>WORLD {world.id}</Text></View>
       </View>
       <View style={[styles.grid, {gap}]}>
-        {world.levels.map(levelNumber => (
+        {levels.map(levelNumber => (
           <LevelCard
+            allowReplay={reviewMode}
             completed={isLevelCompleted(levelStars, levelNumber)}
             key={levelNumber}
             level={levelNumber}
-            locked={levelNumber > unlockedLevel || !LEVEL_CONFIGS[levelNumber]}
+            locked={!reviewMode && (levelNumber > unlockedLevel || !LEVEL_CONFIGS[levelNumber])}
             onPress={() => navigation.navigate('Gameplay', {level: levelNumber})}
             size={cardSize}
             stars={levelStars[levelNumber] ?? 0}
@@ -90,8 +101,8 @@ function WorldSection({world, cardSize, gap, levelStars, navigation, unlockedLev
   );
 }
 
-function LevelCard({level, locked, completed, stars, size, onPress}) {
-  const disabled = locked || completed;
+function LevelCard({allowReplay, level, locked, completed, stars, size, onPress}) {
+  const disabled = locked || (completed && !allowReplay);
   return (
     <Pressable
       accessibilityLabel={locked ? `Level ${level}, locked`

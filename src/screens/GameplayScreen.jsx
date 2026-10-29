@@ -32,6 +32,7 @@ import {
   findMagnetHintIds,
   refillMatchedSlots,
   shuffleRemainingBoard,
+  shuffleRestockedBoard,
   swapSlots,
 } from '../game/boardLogic';
 import {getStarsForTime, LEVEL_CONFIGS, SHELF_ASSETS} from '../game/levelConfigs';
@@ -56,6 +57,9 @@ import useEntranceAnimation from '../hooks/useEntranceAnimation';
 
 const background = require('../assets/menu-background.png');
 const timerClock = require('../assets/timer-clock-3d.png');
+// Booster controls are intentionally hidden from gameplay, so their unlock
+// announcements must stay hidden as well until that UI is restored.
+const SHOW_BOOSTER_UNLOCK_MODAL = false;
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -100,6 +104,9 @@ export default function GameplayScreen({navigation, route}) {
   const matchResolutionRef = useRef(null);
   const completedMatchesRef = useRef(0);
   const restocksUsedRef = useRef(0);
+  // Per-attempt history: a restock type can never be reused, including after
+  // its earlier triple has been cleared.
+  const usedRestockTypesRef = useRef(new Set());
   const matchCoinsRef = useRef(0);
   const completedRef = useRef(false);
   const adPurposeRef = useRef(null);
@@ -191,6 +198,7 @@ export default function GameplayScreen({navigation, route}) {
     restockTimerRef.current = null;
     completedRef.current = false;
     restocksUsedRef.current = 0;
+    usedRestockTypesRef.current = new Set();
     boosterGuardRef.current = {magnet: false, shuffle: false, freeze: false};
     setBoard(createLevelBoard(config));
     setSelectedIndex(null);
@@ -408,16 +416,37 @@ export default function GameplayScreen({navigation, route}) {
     );
     const availableRestocks = Math.max(0, config.restockCount - restocksUsedRef.current);
     const restockGroups = resolution.groups.slice(0, availableRestocks);
-    const restockedBoard = restockGroups.length
+    const restockResult = restockGroups.length
       ? refillMatchedSlots(
         cleared,
         config,
         restockGroups,
         restocksUsedRef.current + 1,
+        usedRestockTypesRef.current,
       )
       : null;
-    const appliedRestocks = restockedBoard ? restockGroups.length : 0;
-    const isComplete = !restockedBoard && cleared.every(item => item === null);
+    const restockedBoard = restockResult?.board ?? null;
+    // Refill placement is followed by a free, full-board mix. This is not the
+    // player Shuffle booster, so no booster economy is touched here.
+    const shuffledRestockedBoard = restockedBoard
+      ? shuffleRestockedBoard(restockedBoard, config)
+      : null;
+    const appliedRestocks = shuffledRestockedBoard ? restockGroups.length : 0;
+
+    // Capacity or playability failure must never turn into a duplicate-type
+    // refill or an early level completion. Restore the board without awarding
+    // this match; normal configured levels have enough registered asset types.
+    if (restockGroups.length && (!restockResult || !shuffledRestockedBoard)) {
+      setMatchingIndices(new Set());
+      setBoard(resolution.board);
+      setInputLocked(false);
+      showBoosterFeedback(restockResult
+        ? 'No safe refill mix is available'
+        : 'No fresh refill item is available');
+      return;
+    }
+
+    const isComplete = !shuffledRestockedBoard && cleared.every(item => item === null);
     playSound('match');
     setBoard(cleared);
     setMatchingIndices(new Set());
@@ -433,10 +462,11 @@ export default function GameplayScreen({navigation, route}) {
     if (coinFeedbackTimerRef.current) clearTimeout(coinFeedbackTimerRef.current);
     coinFeedbackTimerRef.current = setTimeout(() => setCoinFeedback(null), 800);
 
-    if (restockedBoard) {
+    if (shuffledRestockedBoard) {
       restocksUsedRef.current += appliedRestocks;
+      restockResult.types.forEach(type => usedRestockTypesRef.current.add(type));
       restockTimerRef.current = setTimeout(() => {
-        setBoard(restockedBoard);
+        setBoard(shuffledRestockedBoard);
         setInputLocked(false);
         setActivityVersion(current => current + 1);
         restockTimerRef.current = null;
@@ -472,7 +502,8 @@ export default function GameplayScreen({navigation, route}) {
     } else {
       setInputLocked(false);
     }
-  }, [awardMatchCoins, completeLevel, config, continuesUsed, level, levelStars, playSound, timeLeft]);
+  }, [awardMatchCoins, completeLevel, config, continuesUsed, level, levelStars,
+    playSound, showBoosterFeedback, timeLeft]);
 
   const resolveMatches = useCallback(
     nextBoard => {
@@ -652,7 +683,7 @@ export default function GameplayScreen({navigation, route}) {
       <BoosterUnlockModal
         booster={unseenUnlockedBooster}
         onDismiss={() => unseenUnlockedBooster && dismissBoosterUnlock(unseenUnlockedBooster)}
-        visible={Boolean(unseenUnlockedBooster) && !complete && !timeUp}
+        visible={SHOW_BOOSTER_UNLOCK_MODAL && Boolean(unseenUnlockedBooster) && !complete && !timeUp}
       />
 
       <TimeUpModal
