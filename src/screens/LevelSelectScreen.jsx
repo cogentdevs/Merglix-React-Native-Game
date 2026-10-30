@@ -17,6 +17,7 @@ const WORLDS = [
   {id: 7, levels: getWorldLevels(7)},
   {id: 8, levels: getWorldLevels(8)},
   {id: 9, levels: getWorldLevels(9)},
+  {id: 10, levels: getWorldLevels(10)},
 ];
 // Temporary QA switch. Set this back to false before the live release to
 // restore the normal world and level unlock flow without touching saved data.

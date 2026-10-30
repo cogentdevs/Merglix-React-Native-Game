@@ -24,9 +24,12 @@ module.exports = {
   RewardedAd: {
     createForAdRequest: jest.fn(createAd),
   },
+  InterstitialAd: {
+    createForAdRequest: jest.fn(createAd),
+  },
   RewardedAdEventType: {
     EARNED_REWARD: 'rewarded_earned_reward',
     LOADED: 'rewarded_loaded',
   },
-  TestIds: {BANNER: 'test-banner', REWARDED: 'test-rewarded'},
+  TestIds: {BANNER: 'test-banner', INTERSTITIAL: 'test-interstitial', REWARDED: 'test-rewarded'},
 };

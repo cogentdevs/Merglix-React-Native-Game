@@ -146,6 +146,22 @@ describe('coin rewards', () => {
     expect(getLevelCompletionReward(410)).toBe(225);
     expect(getLevelCompletionReward(411)).toBe(230);
     expect(getLevelCompletionReward(420)).toBe(230);
+    expect(getLevelCompletionReward(421)).toBe(235);
+    expect(getLevelCompletionReward(430)).toBe(235);
+    expect(getLevelCompletionReward(431)).toBe(240);
+    expect(getLevelCompletionReward(440)).toBe(240);
+    expect(getLevelCompletionReward(441)).toBe(245);
+    expect(getLevelCompletionReward(450)).toBe(245);
+    expect(getLevelCompletionReward(451)).toBe(250);
+    expect(getLevelCompletionReward(460)).toBe(250);
+    expect(getLevelCompletionReward(461)).toBe(255);
+    expect(getLevelCompletionReward(470)).toBe(255);
+    expect(getLevelCompletionReward(471)).toBe(260);
+    expect(getLevelCompletionReward(480)).toBe(260);
+    expect(getLevelCompletionReward(481)).toBe(265);
+    expect(getLevelCompletionReward(490)).toBe(265);
+    expect(getLevelCompletionReward(491)).toBe(270);
+    expect(getLevelCompletionReward(500)).toBe(270);
   });
 
   test('halves only the completion bonus on replay', () => {

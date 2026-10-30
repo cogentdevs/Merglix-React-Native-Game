@@ -307,6 +307,153 @@ test('Levels 411-420 follow the approved seven-row expansion contract', () => {
   }
 });
 
+test('Levels 421-430 follow the approved seven-row and restock boundaries', () => {
+  for (let level = 421; level <= 430; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    const expectedRestocks = level <= 425 ? 16 : 17;
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(expectedRestocks);
+    expect(config.totalTargetMatches).toBe(14 + expectedRestocks);
+    expect(config.durationSeconds).toBe(480);
+    expect(config.completionReward).toBe(235);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 431-440 follow the approved endgame expansion contract', () => {
+  for (let level = 431; level <= 440; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(17);
+    expect(config.totalTargetMatches).toBe(31);
+    expect(config.durationSeconds).toBe(490);
+    expect(config.completionReward).toBe(240);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 441-450 follow the approved World 9 final contract', () => {
+  for (let level = 441; level <= 450; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(17);
+    expect(config.totalTargetMatches).toBe(31);
+    expect(config.durationSeconds).toBe(500);
+    expect(config.completionReward).toBe(245);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 451-460 follow the approved World 10 entry contract', () => {
+  for (let level = 451; level <= 460; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(18);
+    expect(config.totalTargetMatches).toBe(32);
+    expect(config.durationSeconds).toBe(510);
+    expect(config.completionReward).toBe(250);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 461-470 follow the approved World 10 deep contract', () => {
+  for (let level = 461; level <= 470; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(18);
+    expect(config.totalTargetMatches).toBe(32);
+    expect(config.durationSeconds).toBe(520);
+    expect(config.completionReward).toBe(255);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 471-480 preserve the approved restock boundary', () => {
+  for (let level = 471; level <= 480; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    const expectedRestocks = level <= 475 ? 18 : 19;
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(expectedRestocks);
+    expect(config.totalTargetMatches).toBe(14 + expectedRestocks);
+    expect(config.durationSeconds).toBe(530);
+    expect(config.completionReward).toBe(260);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 481-490 follow the approved World 10 final-stretch contract', () => {
+  for (let level = 481; level <= 490; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(19);
+    expect(config.totalTargetMatches).toBe(33);
+    expect(config.durationSeconds).toBe(540);
+    expect(config.completionReward).toBe(265);
+    expect(config.matchReward).toBe(5);
+  }
+});
+
+test('Levels 491-500 follow the approved World 10 finale contract', () => {
+  for (let level = 491; level <= 500; level += 1) {
+    const config = LEVEL_CONFIGS[level];
+    expect(config).toBeDefined();
+    expect(config.rows).toBe(7);
+    expect(config.columns).toBe(6);
+    expect(config.productTypes).toHaveLength(14);
+    expect(config.totalItemCount).toBe(42);
+    expect(Object.values(config.copiesByType)).toEqual(Array(14).fill(3));
+    expect(config.targetMatches).toBe(14);
+    expect(config.restockCount).toBe(19);
+    expect(config.totalTargetMatches).toBe(33);
+    expect(config.durationSeconds).toBe(550);
+    expect(config.completionReward).toBe(270);
+    expect(config.matchReward).toBe(5);
+  }
+  expect(LEVEL_CONFIGS[500].difficulty).toBe('world-10-grand-finale');
+});
+
 describe.each(Object.entries(EXPECTED_LEVELS))('Level %s', (level, expected) => {
   const config = LEVEL_CONFIGS[level];
 

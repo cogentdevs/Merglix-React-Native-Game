@@ -4,7 +4,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 const coin3d = require('../../assets/coin-3d.png');
 const star3d = require('../../assets/merglix game elments/level start updated.png');
 
-export default function LevelCompleteModal({visible, level, score, matchCoins, completionCoins, totalCoins, extraCoins, adStatus = 'loading', stars = 3, onWatchAd, onNext, onHome}) {
+export default function LevelCompleteModal({visible, level, score, matchCoins, completionCoins, totalCoins, extraCoins, adStatus = 'loading', stars = 3, interactionDisabled = false, onWatchAd, onNext, onHome}) {
   const {width, height} = useWindowDimensions();
   const overlay = useRef(new Animated.Value(0)).current;
   const card = useRef(new Animated.Value(0.82)).current;
@@ -26,7 +26,9 @@ export default function LevelCompleteModal({visible, level, score, matchCoins, c
   }, [card, overlay, starValues, visible]);
 
   return (
-    <Modal animationType="none" hardwareAccelerated onRequestClose={onHome} statusBarTranslucent transparent visible={visible}>
+    <Modal animationType="none" hardwareAccelerated onRequestClose={() => {
+      if (!interactionDisabled) onHome?.();
+    }} statusBarTranslucent transparent visible={visible}>
       <Animated.View style={[styles.overlay, {opacity: overlay}]}>
         <SafeAreaView style={styles.safeArea}>
           <Animated.View style={[styles.container, {width: Math.min(width * 0.88, 440), transform: [{scale: card}]}]}>
@@ -71,12 +73,13 @@ export default function LevelCompleteModal({visible, level, score, matchCoins, c
             </View>
             <RewardAdButton
               extraCoins={extraCoins}
+              interactionDisabled={interactionDisabled}
               onPress={onWatchAd}
               scale={scale}
               status={adStatus}
             />
-            <GameButton color="#48D119" dark="#179807" label="NEXT" onPress={onNext} scale={scale} />
-            <GameButton color="#199DE6" dark="#0870BE" label="HOME" onPress={onHome} scale={scale} />
+            <GameButton color="#48D119" dark="#179807" disabled={interactionDisabled} label="NEXT" onPress={onNext} scale={scale} />
+            <GameButton color="#199DE6" dark="#0870BE" disabled={interactionDisabled} label="HOME" onPress={onHome} scale={scale} />
           </Animated.View>
         </SafeAreaView>
       </Animated.View>
@@ -84,7 +87,7 @@ export default function LevelCompleteModal({visible, level, score, matchCoins, c
   );
 }
 
-function RewardAdButton({extraCoins, onPress, scale, status}) {
+function RewardAdButton({extraCoins, interactionDisabled, onPress, scale, status}) {
   const pulse = useRef(new Animated.Value(1)).current;
   const shimmer = useRef(new Animated.Value(-1)).current;
 
@@ -120,7 +123,7 @@ function RewardAdButton({extraCoins, onPress, scale, status}) {
     earnedClosed: ['2X COINS CLAIMED!', `+${extraCoins} EXTRA COINS`],
     error: ['RETRY REWARD AD', 'Tap to load the test ad again'],
   }[status] ?? ['WATCH AD - 2X COINS', `GET +${extraCoins} EXTRA COINS`];
-  const disabled = status === 'loading' || status === 'showing' || status === 'closed' || status === 'earned' || status === 'earnedClosed';
+  const disabled = interactionDisabled || status === 'loading' || status === 'showing' || status === 'closed' || status === 'earned' || status === 'earnedClosed';
 
   return (
     <Animated.View style={{transform: [{scale: pulse}]}}>
@@ -172,8 +175,8 @@ function RewardAdButton({extraCoins, onPress, scale, status}) {
   );
 }
 
-function GameButton({color, dark, label, onPress, scale}) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed}) => [styles.buttonDepth, {backgroundColor: dark, height: 65 * scale}, pressed && styles.pressed]}><View style={[styles.button, {backgroundColor: color}]}><View style={styles.buttonHighlight} /><Text style={[styles.buttonText, {fontSize: 27 * scale}]}>{label}</Text></View></Pressable>;
+function GameButton({color, dark, disabled, label, onPress, scale}) {
+  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({pressed}) => [styles.buttonDepth, {backgroundColor: dark, height: 65 * scale}, disabled && styles.buttonDisabled, pressed && styles.pressed]}><View style={[styles.button, {backgroundColor: color}]}><View style={styles.buttonHighlight} /><Text style={[styles.buttonText, {fontSize: 27 * scale}]}>{label}</Text></View></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -212,6 +215,7 @@ const styles = StyleSheet.create({
   rewardSubtitle: {marginTop: 2, color: '#FFF5CF', fontWeight: '800', textAlign: 'center'},
   rewardDisabled: {opacity: 0.72},
   buttonDepth: {marginTop: 16, borderRadius: 30, paddingBottom: 7, elevation: 10},
+  buttonDisabled: {opacity: 0.62},
   button: {flex: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 30, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)'},
   buttonHighlight: {position: 'absolute', top: 0, left: 0, right: 0, height: '45%', backgroundColor: 'rgba(255,255,255,0.13)'},
   buttonText: {color: '#FFF', fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: {width: 0, height: 3}, textShadowRadius: 2},

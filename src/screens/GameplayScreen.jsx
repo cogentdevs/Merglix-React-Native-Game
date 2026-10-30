@@ -44,6 +44,7 @@ import {
   normalizeBoosterState,
 } from '../game/boosterEconomy';
 import {getRewardBreakdown} from '../game/coinRewards';
+import {shouldShowInterstitialAfterLevel} from '../game/interstitialAdPolicy';
 import {
   calculateGameplayScore,
   canContinueAfterTimeUp,
@@ -52,6 +53,7 @@ import {
 } from '../game/timeUpConfig';
 import useGameSounds from '../hooks/useGameSounds';
 import useRewardedCoinsAd from '../hooks/useRewardedCoinsAd';
+import useInterstitialAd from '../hooks/useInterstitialAd';
 import {useGameProgress} from '../context/GameProgressContext';
 import useEntranceAnimation from '../hooks/useEntranceAnimation';
 
@@ -112,6 +114,7 @@ export default function GameplayScreen({navigation, route}) {
   const adPurposeRef = useRef(null);
   const attemptIdRef = useRef(createAttemptId(level));
   const boosterGuardRef = useRef({magnet: false, shuffle: false, freeze: false});
+  const interstitialAttemptRef = useRef(null);
   const [board, setBoard] = useState(() => createLevelBoard(config));
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [matchingIndices, setMatchingIndices] = useState(new Set());
@@ -135,6 +138,7 @@ export default function GameplayScreen({navigation, route}) {
   const [boosterFeedback, setBoosterFeedback] = useState('');
   const [continuesUsed, setContinuesUsed] = useState(0);
   const [isRewardedAdVisible, setIsRewardedAdVisible] = useState(false);
+  const [isInterstitialShowing, setIsInterstitialShowing] = useState(false);
   const [boosterUses, setBoosterUses] = useState({...INITIAL_ATTEMPT_BOOSTER_USES});
   const [coinDeduction, setCoinDeduction] = useState(null);
   const normalizedBoosterState = normalizeBoosterState(boosterState);
@@ -166,10 +170,17 @@ export default function GameplayScreen({navigation, route}) {
     setIsRewardedAdVisible(showing);
     setRewardedAdShowing(showing);
   }, [setRewardedAdShowing]);
+  const handleInterstitialVisibilityChange = useCallback(showing => {
+    setIsInterstitialShowing(showing);
+    // This existing shared state pauses/resumes background music for every
+    // full-screen ad; it does not affect reward eligibility.
+    setRewardedAdShowing(showing);
+  }, [setRewardedAdShowing]);
   const rewardedAd = useRewardedCoinsAd(
     handleAdRewardEarned,
     handleAdVisibilityChange,
   );
+  const interstitialAd = useInterstitialAd(handleInterstitialVisibilityChange);
   const rewardedCoinsClaimed = Boolean(
     rewardedAdClaims?.[attemptIdRef.current] ||
       adRewardClaims?.includes(attemptIdRef.current),
@@ -221,10 +232,12 @@ export default function GameplayScreen({navigation, route}) {
     setBoosterFeedback('');
     setContinuesUsed(0);
     setIsRewardedAdVisible(false);
+    setIsInterstitialShowing(false);
     setBoosterUses({...INITIAL_ATTEMPT_BOOSTER_USES});
     setCoinDeduction(null);
     adPurposeRef.current = null;
     matchResolutionRef.current = null;
+    interstitialAttemptRef.current = null;
   }, [config, level]);
 
   useEffect(() => {
@@ -499,11 +512,20 @@ export default function GameplayScreen({navigation, route}) {
       });
       setComplete(true);
       playSound('complete');
+      const attemptId = attemptIdRef.current;
+      if (
+        shouldShowInterstitialAfterLevel(level) &&
+        !isRewardedAdVisible &&
+        interstitialAttemptRef.current !== attemptId &&
+        interstitialAd.show()
+      ) {
+        interstitialAttemptRef.current = attemptId;
+      }
     } else {
       setInputLocked(false);
     }
-  }, [awardMatchCoins, completeLevel, config, continuesUsed, level, levelStars,
-    playSound, showBoosterFeedback, timeLeft]);
+  }, [awardMatchCoins, completeLevel, config, continuesUsed, interstitialAd, level,
+    levelStars, playSound, showBoosterFeedback, timeLeft, isRewardedAdVisible]);
 
   const resolveMatches = useCallback(
     nextBoard => {
@@ -708,8 +730,12 @@ export default function GameplayScreen({navigation, route}) {
         extraCoins={rewardSummary.totalCoins}
         level={level}
         matchCoins={rewardSummary.matchCoins}
-        onHome={() => navigation.navigate('MainTabs', {screen: 'Home'})}
+        interactionDisabled={isInterstitialShowing}
+        onHome={() => {
+          if (!isInterstitialShowing) navigation.navigate('MainTabs', {screen: 'Home'});
+        }}
         onNext={() => {
+          if (isInterstitialShowing) return;
           if (LEVEL_CONFIGS[level + 1]) {
             navigation.replace('Gameplay', {level: level + 1});
           } else {
@@ -717,6 +743,7 @@ export default function GameplayScreen({navigation, route}) {
           }
         }}
         onWatchAd={() => {
+          if (isInterstitialShowing) return;
           adPurposeRef.current = 'levelComplete';
           if (rewardedAd.status === 'error') rewardedAd.retry();
           else rewardedAd.show();
